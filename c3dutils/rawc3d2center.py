@@ -3,7 +3,8 @@ import numpy as np
 import os
 from pathlib import Path
 import traceback
-
+import pandas as pd
+import json
 #this script will take in a c3d file and position the c3d mocap data in the origin.
 #ad it will output the updated c3d in the specified directory
 parent_folder = Path("/mnt/d/Research_data_central/Raw_c3d/")
@@ -227,6 +228,37 @@ def run_once(inputpath):
     # Save the updated C3D file
     new_c3d.write(inputpath[1])
     print(f"completed export to c3d to {inputpath[1]}")
+    trialname=inputpath[1].split("/")[-1].split(".")[0]
+    subjectname=inputpath[1].split("/")[-2]
+
+    newpath=f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}/{trialname}.c3d"
+    os.makedirs(f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}", exist_ok=True)
+    new_c3d.write(newpath)
+    df=pd.read_csv("subjects_char.csv")
+    gender = df.loc[df["ID"] == subjectname, "Gender (M/F)"].values[0]
+    if gender =="M":
+        data = {"gender": "male"}
+
+        # File path
+        file_path = f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}/settings.json"
+
+        # Write to a JSON file
+        with open(file_path, "w") as json_file:
+            json.dump(data, json_file, indent=4)
+    
+    else:
+        data = {"gender": "female"}
+
+        # File path
+        file_path = f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}/settings.json"
+
+
+        # Write to a JSON file
+        with open(file_path, "w") as json_file:
+            json.dump(data, json_file, indent=4)
+
+    print(f"completed export to c3d to {newpath}")
+
     
     return
 
@@ -342,6 +374,14 @@ def run_cal(inputpath):
     # Save the updated C3D file
     new_c3d.write(inputpath[1])
     print(f"completed export to c3d to {inputpath[1]}")
+    #also now export it to a different location
+    trialname=inputpath.split("/")[-1].split(".")[0]
+    subjectname=inputpath.split("/")[-2]
+
+    newpath=f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}/{trialname}.c3d"
+    new_c3d.write(newpath)
+    print(f"completed export to c3d to {newpath}")
+
     
     return
 
@@ -361,3 +401,5 @@ for path in pathdict:
 
 
 print(errorlog)
+
+#then I need to get from all files --> naming conventions boom 
