@@ -86,6 +86,13 @@ def run_once(inputpath):
     # Extract marker data and labels
     all_markers = c3d["data"]["points"]  # Shape: (4, n_markers, n_frames)
     all_labels = c3d["parameters"]["POINT"]["LABELS"]["value"]
+    print(all_labels)
+    #LTHI=INDEX 23 
+    #LTIB =INDEX 25
+    #RTHI =29 
+    #RTIB =31 
+  
+
 
     # Check if there are at least 34 markers
     if all_markers.shape[1] < 34:
@@ -94,6 +101,30 @@ def run_once(inputpath):
     # Extract the first 34 markers and their labels
     subset_markers = all_markers[:, :34, :]  # Keep only the first 34 markers
     subset_labels = all_labels[:34]  # First 34 marker labels
+    marker_indices = [22, 24, 28, 30]
+    lthi_index = subset_labels.index("LTHI")
+    LTIB_index= subset_labels.index("LTIB")
+    rthi_index = subset_labels.index("RTHI")
+    RTIB_index= subset_labels.index("RTIB")
+    print(lthi_index)
+    first_marker_x=subset_markers[1, 0, 0]
+    print(first_marker_x)
+    print(subset_markers[1, rthi_index, 0])
+    wand_length=60
+    if first_marker_x - subset_markers[1, rthi_index, 0] <0 :
+
+        subset_markers[1, rthi_index, :] -= wand_length  # Adjust x-coordinates
+        subset_markers[1, RTIB_index, :] -= wand_length  # Adjust x-coordinates
+
+        subset_markers[1, lthi_index, :] += wand_length  # Adjust x-coordinates
+        subset_markers[1, LTIB_index, :] += wand_length  # Adjust x-coordinates
+    else:
+        subset_markers[1, rthi_index, :] += wand_length  # Adjust x-coordinates
+        subset_markers[1, RTIB_index, :] += wand_length  # Adjust x-coordinates
+
+        subset_markers[1, lthi_index, :] -= wand_length  # Adjust x-coordinates
+        subset_markers[1, LTIB_index, :] -= wand_length  # Adjust x-coordinates
+
 
     #take first frame
     def calculatecentroid(firstframee):

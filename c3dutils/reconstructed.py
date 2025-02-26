@@ -7,7 +7,7 @@ import os.path as osp
 
 import cv2
 
-
+from human_body_prior.tools.omni_tools import copy2cpu as c2c
 import torch
 from colour import Color
 from human_body_prior.body_model.body_model import BodyModel
@@ -19,6 +19,41 @@ from human_body_prior.tools.rotation_tools import rotate_points_xyz
 from moshpp.mosh_head import MoSh
 from loguru import logger
 
+marker_dict={"C7": 3832,
+        "CLAV": 5533,
+        "LANK": 5882,
+        "LBHD": 2026,
+        "LBWT": 5697,
+        "LELB": 4302,
+        "LFHD": 707,
+        "LFIN": 4788,
+        "LFWT": 3486,
+        "LHEE": 8846,
+        "LIWR": 4726,
+        "LKNE": 3682,
+        "LOWR": 4722,
+        "LSHO": 4481,
+        "LTHI": 4088,
+        "LTIB": 3745,
+        "LTOE": 5787,
+        "RANK": 8576,
+        "RBHD": 3066,
+        "RBWT": 8391,
+        "RELB": 7040,
+        "RFHD": 2198,
+        "RFIN": 7524,
+        "RFWT": 6248,
+        "RHEE": 8634,
+        "RIWR": 7462,
+        "RKNE": 6443,
+        "ROWR": 7458,
+        "RSHO": 6627,
+        "RTHI": 6832,
+        "RTIB": 6503,
+        "RTOE": 8481,
+        "STRN": 5531,
+        "T10": 5623
+      }
 def convert_to_mesh_once(stageii_input_file):
     
     #cfg = prepare_render_cfg(**cfg)
@@ -42,7 +77,9 @@ def convert_to_mesh_once(stageii_input_file):
 
     datas[mosh_id] = {}
 
-    mosh_result = MoSh.load_as_amass_npz(stageii_input_file, include_markers=True)
+    stageii_npz_fname=stageii_input_file.replace('.pkl','.npz')
+
+    mosh_result = MoSh.load_as_amass_npz(stageii_input_file,stageii_npz_fname=stageii_npz_fname, include_markers=True)
 
     # logger.info(mosh_result.keys())
 
@@ -85,11 +122,20 @@ def convert_to_mesh_once(stageii_input_file):
 
 
     
-
+    #I suspect what I have to do now is to manually map the markers from the standard gait plug in to 
+    #the smplx model, which might be difficult....
     first_frame_rot = cv2.Rodrigues(mosh_result['root_orient'][0].copy())[0]
     datas[mosh_id]['theta_z_mosh'] = np.rad2deg(np.arctan2(first_frame_rot[1, 0], first_frame_rot[0, 0]))
+    surface_model_fname = osp.join("/mnt/d/ubuntubackup/test/support_files", surface_model_type, gender, 'model.npz')
+    num_expressions = len(mosh_result['expression']) if 'expression' in mosh_result else None
+    sm = BodyModel(bm_fname=surface_model_fname,
+                       num_betas=num_betas,
+                       num_expressions=num_expressions,
+                       num_dmpls=None,
+                       dmpl_fname=None)
+    surface_parms = {k: torch.Tensor(v[selected_frames]) for k, v in mosh_result.items() if k in body_keys}
 
-
+    datas[mosh_id]['mosh_bverts'] = c2c(sm(**surface_parms).v)
     
     dataarray=[]
     for t, fId in enumerate(selected_frames):
@@ -101,17 +147,24 @@ def convert_to_mesh_once(stageii_input_file):
 
 
             
-
-
+            cur_body_verts = rotate_points_xyz(data['mosh_bverts'][t][None],
+                                               np.array([0, 0, 0]).reshape(-1, 3))
+            cur_body_verts = rotate_points_xyz(cur_body_verts, np.array([0, 0, 0]).reshape(-1, 3))[0]
            
+            #only select the 34 points as
+            indices=list(marker_dict.values())
+            filteredb_vertices= cur_body_verts[indices]
+          
+
+
             
-            cur_marker_verts = rotate_points_xyz(data['markers'][t][None],
-                                                    np.array([0, 0, 0]).reshape(-1, 3))
+            #cur_marker_verts = rotate_points_xyz(data['markers'][t][None],
+                                                    #np.array([0, 0, 0]).reshape(-1, 3))
             #-data['theta_z_mosh']
-            cur_marker_verts = rotate_points_xyz(cur_marker_verts, np.array([0, 0, 0]).reshape(-1, 3))[0]
+            #cur_marker_verts = rotate_points_xyz(cur_marker_verts, np.array([0, 0, 0]).reshape(-1, 3))[0]
             
             
-            dataarray.append(cur_marker_verts*1000)
+            dataarray.append(filteredb_vertices*1000)
     
   
     if np.any(np.isnan(dataarray)):
@@ -134,7 +187,7 @@ def convert_to_mesh_once(stageii_input_file):
     #new_c3d['data']['meta_points']['residuals'] = residuals.transpose([2, 1, 0])
 
     # Update labels
-    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = mosh_result['labels']
+    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = list(marker_dict.keys())
 
     # Adjust other parameters based on the new marker count
     new_c3d["parameters"]["POINT"]["USED"]["value"] = [34]  # Update marker count
@@ -147,7 +200,7 @@ def convert_to_mesh_once(stageii_input_file):
     new_c3d["parameters"]["POINT"]["UNITS"]["value"] = ["mm"]  # Units
     new_c3d["parameters"]["POINT"]["RATE"]["value"] = [100]
     # Save the updated C3D file
-    print(outputpath)
+    
  
     new_c3d.write(outputpath)
     print(f"completed export to c3d to {outputpath}")
