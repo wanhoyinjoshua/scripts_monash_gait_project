@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import traceback
 import os.path as osp
-
+import pickle
 import cv2
 
 from human_body_prior.tools.omni_tools import copy2cpu as c2c
@@ -20,42 +20,48 @@ from moshpp.mosh_head import MoSh
 from loguru import logger
 
 marker_dict={
-        "C7": 3354,
-        "CLAV": 5618,
-        "LANK": 5882,
-        "LBHD": 2026,
-        "LBWT": 5697,
-        "LELB": 4302,
         "LFHD": 707,
-        "LFIN": 4888,
-        "LFWT": 3486,
-        "LHEE": 8846,
-        "LIWR": 4726,
-        "LKNE": 3683,
-        "LOWR": 4722,
-        "LSHO": 4481,
-        "LTHI": 3591,
-        "LTIB": 3724,
-        "LTOE": 5895,
-        "RANK": 8576,
-        "RBHD": 3066,
-        "RBWT": 8391,
-        "RELB": 7040,
         "RFHD": 2198,
-        "RFIN": 7624,
-        "RFWT": 6248,
-        "RHEE": 8634,
-        "RIWR": 7462,
-        "RKNE": 6444,
-        "ROWR": 7458,
-        "RSHO": 6627,
-        "RTHI": 6352,
-        "RTIB": 6485,
-        "RTOE": 8589,
+        "LBHD": 2026,
+        "RBHD": 3066,
+        "C7": 3354,
+        "T10": 5623,
+        "CLAV": 5618,
         "STRN": 5531,
-        "T10": 5623
+        "LSHO": 4481,
+        "LELB": 4302,
+        "LIWR": 4726,
+        "LOWR": 4722,
+        "LFIN": 4888,
+        "RSHO": 6627,
+        "RELB": 7040,
+        "RIWR": 7462,
+        "ROWR": 7458,
+        "RFIN": 7624,
+        "LFWT": 3486,
+        "RFWT": 6248,
+        "LBWT": 5697,
+        "RBWT": 8391,
+        "LTHI": 3591,
+        "LKNE": 3683,
+        "LTIB": 3724,
+        "LANK": 5882,
+        "LHEE": 8846,
+        "LTOE": 5895,
+        "RTHI": 6352,
+        "RKNE": 6444,
+        "RTIB": 6485,
+        "RANK": 8576,
+        "RHEE": 8634,
+        "RTOE": 8589,
+        
+        
       }
-def convert_to_mesh_once(stageii_input_file):
+def compare(reconstruted_path,real_path):
+
+    return 
+
+def convert_to_mesh_once(stageii_input_file,matched_original_path):
     
     #cfg = prepare_render_cfg(**cfg)
 
@@ -176,7 +182,7 @@ def convert_to_mesh_once(stageii_input_file):
  
    
 
-
+ 
    
    
 
@@ -206,6 +212,29 @@ def convert_to_mesh_once(stageii_input_file):
     new_c3d.write(outputpath)
     print(f"completed export to c3d to {outputpath}")
 
+    print(matched_original_path)
+    original_c3d = ezc3d.c3d(matched_original_path)
+    
+
+    absolute_differences = np.abs(original_c3d["data"]["points"][:3, :, :] - new_c3d["data"]["points"][:3, :, :])
+
+    # Average the errors for each marker across all frames
+    average_errors_per_marker = np.mean(absolute_differences, axis=2)  # Shape: (3, n_markers)
+
+    # Display the average errors for x, y, z per marker
+    for i, (x_err, y_err, z_err) in enumerate(average_errors_per_marker.T):
+        print(f"Marker {list(marker_dict.keys())[i]}: Avg Error -> X: {x_err:.4f}, Y: {y_err:.4f}, Z: {z_err:.4f}")
+
+    
+    errors_dict = {
+    list(marker_dict.keys())[i]: tuple(average_errors_per_marker[:, i])
+    for i in range(len(list(marker_dict.keys())))
+    }
+
+    output_directory_path = os.path.dirname(outputpath)
+    with open(f"{output_directory_path}/errors.pkl", "wb") as pkl_file:
+        pickle.dump(errors_dict, pkl_file)
+
     
    
        
@@ -217,9 +246,12 @@ def convert_to_mesh_once(stageii_input_file):
 
 parent_folder = Path("/mnt/d/ubuntubackup/test/running_just_mosh/mosh_results/SOMA_manual_labeled")
 
+original_data_folder= Path("/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled")
 # List to store the paths of all .c3d files
+all_original_c3ds= [str(c3d_file) for c3d_file in original_data_folder.rglob("*.c3d")]
+print(all_original_c3ds)
 pkl = []
-
+#what I can do ti to get all original c3d into a listl then I filter them based on trial name
 
 # Traverse the parent folder and its subfolders
 for file in parent_folder.rglob("*.pkl"):  # Use rglob to search recursively for .c3d files
@@ -231,4 +263,7 @@ for file in parent_folder.rglob("*.pkl"):  # Use rglob to search recursively for
 print(pkl)
 for pk in pkl:
     print(pk)
-    convert_to_mesh_once(pk)
+    trialname=pk.split("/")[-2]
+    matched_original_path=[x for x in all_original_c3ds if trialname in x]
+    print(matched_original_path)
+    convert_to_mesh_once(pk,matched_original_path[0])
