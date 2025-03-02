@@ -36,7 +36,6 @@ for actual_path in input_paths:
 
 pathdict=[(x, y) for x, y in zip(input_paths, outputpaths)]
 
-print(pathdict)
 
 errorlog=[]
 
@@ -79,15 +78,96 @@ def replace_nan_with_closest(points):
 
     return points
 
+def find_index(subset_labels):
 
-def run_once(inputpath):
-    c3d = ezc3d.c3d(inputpath[0])
+    LFHD = subset_labels.index("LFHD")
+    RFHD = subset_labels.index("RFHD")
+    LBHD = subset_labels.index("LBHD")
+    RBHD = subset_labels.index("RBHD")
+    C7 = subset_labels.index("C7")
+    T10 = subset_labels.index("T10")
+    CLAV = subset_labels.index("CLAV")
+    STRN = subset_labels.index("STRN")
+    LSHO = subset_labels.index("LSHO")
+    LELB = subset_labels.index("LELB")
+    LWRA = subset_labels.index("LWRA")
+    LWRB = subset_labels.index("LWRB")
+    LFIN = subset_labels.index("LFIN")
+    RSHO = subset_labels.index("RSHO")
+    RELB = subset_labels.index("RELB")
+    RWRA = subset_labels.index("RWRA")
+    RWRB = subset_labels.index("RWRB")
+    RFIN = subset_labels.index("RFIN")
+    LASI = subset_labels.index("LASI")
+    RASI = subset_labels.index("RASI")
+    LPSI = subset_labels.index("LPSI")
+    RPSI = subset_labels.index("RPSI")
+    LTHI = subset_labels.index("LTHI")
+    LKNE = subset_labels.index("LKNE")
+    LTIB = subset_labels.index("LTIB")
+    LANK = subset_labels.index("LANK")
+    LHEE = subset_labels.index("LHEE")
+    LTOE = subset_labels.index("LTOE")
+    RTHI = subset_labels.index("RTHI")
+    RKNE = subset_labels.index("RKNE")
+    RTIB = subset_labels.index("RTIB")
+    RANK = subset_labels.index("RANK")
+    RHEE = subset_labels.index("RHEE")
+    RTOE = subset_labels.index("RTOE")
+    indices = [
+    LFHD, RFHD, LBHD, RBHD, C7, T10, CLAV, STRN, LSHO, LELB,
+    LWRA, LWRB, LFIN, RSHO, RELB, RWRA, RWRB, RFIN, LASI, RASI,
+    LPSI, RPSI, LTHI, LKNE, LTIB, LANK, LHEE, LTOE, RTHI, RKNE,
+    RTIB, RANK, RHEE, RTOE
+    ]
+   
+    return indices
+
+def interpolate_frames(frame1, frame2, steps=10):
+    """
+    Interpolate linearly between frame1 and frame2 over a specified number of steps.
+    Returns an array of interpolated frames.
+    """
+    # Ensure frames have the same shape, which they should
+    if frame1.shape != frame2.shape:
+        raise ValueError(f"Frame shapes must match for interpolation, but got {frame1.shape} and {frame2.shape}")
+    
+    # Interpolation factor calculation
+    interpolated_frames = []
+    for step in range(steps):
+        alpha = step / (steps - 1)  # Use steps-1 to get correct interpolation range
+        interpolated_frame = (1 - alpha) * frame1 + alpha * frame2
+        interpolated_frames.append(interpolated_frame)
+    
+    return np.array(interpolated_frames)
+
+def join_c3ds(path1,path2,analogs1,analogs2):
+    print(path1.shape)
+    print(path2.shape)
+    print (path1[:,:,-1].shape)
+    print(path2[:,:,0].shape)
+    smooth_frames = interpolate_frames(path1[:,:,-1], path2[:,:,0], 20)
+    print(smooth_frames.transpose(1, 2, 0).shape)
+
+    combined_points = np.concatenate((path1, smooth_frames.transpose(1, 2, 0), path2), axis=2)  # Concatenate marker data
+   
+    combined_analogs = np.concatenate((analogs1, analogs2), axis=2)
+    return [combined_points,combined_analogs]
+
+def findHeelindex(subset_labels):
+    LHEE = subset_labels.index("LHEE")
+    return LHEE
+
+def center_normalise(inputpath,isExperiment,isCal,heel_height):
+    c3d = ezc3d.c3d(inputpath)
+    print(c3d)
 
 
     # Extract marker data and labels
     all_markers = c3d["data"]["points"]  # Shape: (4, n_markers, n_frames)
     all_labels = c3d["parameters"]["POINT"]["LABELS"]["value"]
-    print(all_labels)
+    analogs= c3d["data"]["analogs"]
+    
     #LTHI=INDEX 23 
     #LTIB =INDEX 25
     #RTHI =29 
@@ -100,17 +180,33 @@ def run_once(inputpath):
         raise ValueError("The C3D file contains fewer than 34 markers!")
 
     # Extract the first 34 markers and their labels
-    subset_markers = all_markers[:, :34, :]  # Keep only the first 34 markers
-    subset_labels = all_labels[:34]  # First 34 marker labels
+    subset_markers=[]
+    subset_labels=[]
+
+    if isCal:
+        def toString(label):
+            return label.split(":")[-1]
+
+        subsetlabels=list(map(toString,all_labels))
+        custom_indices=find_index(subsetlabels)
+        subset_markers = all_markers[:, custom_indices, :]  # Keep only the first 34 markers
+        subset_labels = [subsetlabels[i] for i in custom_indices] # First 34 marker labels
+        
+       
+    else:
+        subset_markers = all_markers[:, :34, :]  # Keep only the first 34 markers
+        subset_labels = all_labels[:34]  # First 34 marker labels
+
+
+   
     marker_indices = [22, 24, 28, 30]
     lthi_index = subset_labels.index("LTHI")
     LTIB_index= subset_labels.index("LTIB")
     rthi_index = subset_labels.index("RTHI")
     RTIB_index= subset_labels.index("RTIB")
-    print(lthi_index)
+
     first_marker_x=subset_markers[1, 0, 0]
-    print(first_marker_x)
-    print(subset_markers[1, rthi_index, 0])
+
     wand_length=60
     if first_marker_x - subset_markers[1, rthi_index, 0] <0 :
 
@@ -126,35 +222,67 @@ def run_once(inputpath):
         subset_markers[1, lthi_index, :] -= wand_length  # Adjust x-coordinates
         subset_markers[1, LTIB_index, :] -= wand_length  # Adjust x-coordinates
 
+    pointforwards = False
+    T = np.eye(4)
+    if isCal:
+        heel=all_markers[1, 27, 0]
+        toe=all_markers[1, 27, 0]
+        
+        if heel>toe:
+            pass
+            
+        else:
+            T[0, 0] = 0   # cos(90°) = 0
+            T[0, 1] = 1   # -sin(90°) = 1
+            T[1, 0] = -1  # sin(90°) = -1
+            T[1, 1] = 0   # cos(90°) = 0
+    else:
+        x_first_frame = all_markers[0, 0, 0]
 
-    #take first frame
+        # Extract the x-coordinate of the first marker from the last frame
+        x_last_frame = all_markers[0, 0, -1]
+    
+
+
+
+        if x_first_frame - x_last_frame <0:
+            #define transformation matrix
+            
+
+            #it is is -ve rotate the other way.
+            T[0, 0] = 0  # cos(90°) = 0
+            T[0, 1] = 1  # sin(90°) = 1
+            T[1, 0] = -1  # -sin(90°) = -1
+            T[1, 1] = 0  # cos(90°) = 0
+        else:
+            T[0, 0] = 0  # cos(90°) = 0
+            T[0, 1] = -1  # -sin(90°) = -1
+            T[1, 0] = 1   # sin(90°) = 1
+            T[1, 1] = 0   # cos(90°) = 0
+
+    
     def calculatecentroid(firstframee):
         centroid = np.mean(firstframee[:3, :], axis=1)
         return centroid 
 
 
-    x_first_frame = all_markers[0, 0, 0]
+    
 
-    # Extract the x-coordinate of the first marker from the last frame
-    x_last_frame = all_markers[0, 0, -1]
-    T = np.eye(4)
 
-    if x_first_frame - x_last_frame <0:
-        #define transformation matrix
+    if isExperiment == True:
+        valid_marker_indices = [i for i in range(subset_markers.shape[1]) if i not in marker_indices]
+
+        # Use the mask to filter the array
+        subset_markers = subset_markers[:, valid_marker_indices, :]
         
+       
+        subset_labels = [item for idx, item in enumerate(subset_labels) if idx not in marker_indices]
+        len(f"{subset_labels}_label")
+        len(subset_markers)
+  
 
-        #it is is -ve rotate the other way.
-        T[0, 0] = 0  # cos(90°) = 0
-        T[0, 1] = 1  # sin(90°) = 1
-        T[1, 0] = -1  # -sin(90°) = -1
-        T[1, 1] = 0  # cos(90°) = 0
-    else:
-        T[0, 0] = 0  # cos(90°) = 0
-        T[0, 1] = -1  # -sin(90°) = -1
-        T[1, 0] = 1   # sin(90°) = 1
-        T[1, 1] = 0   # cos(90°) = 0
-
-
+    #take first frame
+    
 
 
     #how do I make sure they are facing all the same way?
@@ -190,6 +318,17 @@ def run_once(inputpath):
     T = np.eye(4)
     T[0, 3] = centroid[0]*-1 # Set the x translation
     T[1,3]=centroid[1]*-1
+    if isCal==False:
+        current_heel=np.min(subset_markers[2, findHeelindex(subset_labels), :])
+        print(current_heel)
+        
+        cal_heel=heel_height
+        distance= current_heel-cal_heel
+        print(cal_heel)
+        print(distance*-1)
+        T[2, 3] = distance*-1
+
+
     num_frames = points.shape[2]
     for frame in range(num_frames):
         frame_points = points[:, :, frame]
@@ -201,28 +340,64 @@ def run_once(inputpath):
         
 
         points[:, valid_indices, frame] = transformed_points[:4, :]
+    return [points,subset_labels,analogs,subset_markers[2, findHeelindex(subset_labels), 0]]
+    
+
+
+def run_once(inputpath,isExperiment):
+    #search from input_files for cal folder for the current data trial
+    c3d = ezc3d.c3d(inputpath[0])
+    trial_no= inputpath[0].split("/")[-2]
+    trial=""
+    for e in input_paths:
+      
+        if trial_no in e and "Cal" in e:
+            trial=e
+        else:
+            pass
+    print(trial)
+
+
+    
+
+    trialdata=center_normalise(trial,isExperiment,True,0)
+    #i need to get the z coordinated of the heel and output it here 
+    print("shitnigga")
+    trial_points=trialdata[0]
+    trial_labels=trialdata[1]
+    trial_analogs=trialdata[2]
+    print(trial_labels)
+    #here I need to process the c3d trial c3d file. 
+
+    print(inputpath[0])
+    data= center_normalise(inputpath[0],isExperiment,False,trialdata[3])
+  
+
+    points=data[0]
+    subset_labels=data[1]
+    analog=data[2]
 
     # Update the C3D data with the transformed points
 
-
-
+    newdata=join_c3ds(trial_points,points,trial_analogs,analog)
+    print(newdata)
     # Update the C3D file structure
     new_c3d = ezc3d.c3d()
 
     # Add marker data
-    new_c3d["data"]["points"] = points
+    new_c3d["data"]["points"] = newdata[0]
 
     # Update labels
     new_c3d["parameters"]["POINT"]["LABELS"]["value"] = subset_labels
-
+    #new_c3d["data"]["analogs"]=newdata[1]
     # Adjust other parameters based on the new marker count
-    new_c3d["parameters"]["POINT"]["USED"]["value"] = [34]  # Update marker count
-    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * 34  # Placeholder descriptions
+    new_c3d["parameters"]["POINT"]["USED"]["value"] = [len(points)]  # Update marker count
+    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * len(subset_labels)  # Placeholder descriptions
 
     # Copy metadata from the original file if needed
     new_c3d["parameters"]["ANALOG"]["USED"]["value"] = [0]  # No analog channels
     new_c3d["parameters"]["ANALOG"]["RATE"]["value"] = [0]  # Analog rate
-    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * 34  # Empty descriptions
+    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * len(subset_labels)  # Empty descriptions
     new_c3d["parameters"]["POINT"]["UNITS"]["value"] = ["mm"]  # Units
     new_c3d["parameters"]["POINT"]["RATE"]["value"] = c3d["parameters"]["POINT"]["RATE"]["value"]
     # Save the updated C3D file
@@ -393,13 +568,15 @@ for path in pathdict:
         if "Cal" in path[0]:
             print("cal")
         else:
-            run_once(path)
+            run_once(path,True)
     except Exception as e:
-        errorlog.append(path[0])
         print(e)
+        errorlog.append(path[0])
+        traceback.print_exc()
+        
         
 
 
-print(errorlog)
+
 
 #then I need to get from all files --> naming conventions boom 

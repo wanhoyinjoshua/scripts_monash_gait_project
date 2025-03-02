@@ -57,11 +57,50 @@ marker_dict={
         
         
       }
+
+exp_marker_dict={
+        "LFHD": 707,
+        "RFHD": 2198,
+        "LBHD": 2026,
+        "RBHD": 3066,
+        "C7": 3354,
+        "T10": 5623,
+        "CLAV": 5618,
+        "STRN": 5531,
+        "LSHO": 4481,
+        "LELB": 4302,
+        "LIWR": 4726,
+        "LOWR": 4722,
+        "LFIN": 4888,
+        "RSHO": 6627,
+        "RELB": 7040,
+        "RIWR": 7462,
+        "ROWR": 7458,
+        "RFIN": 7624,
+        "LFWT": 3486,
+        "RFWT": 6248,
+        "LBWT": 5697,
+        "RBWT": 8391,
+       
+        "LKNE": 3683,
+       
+        "LANK": 5882,
+        "LHEE": 8846,
+        "LTOE": 5895,
+       
+        "RKNE": 6444,
+       
+        "RANK": 8576,
+        "RHEE": 8634,
+        "RTOE": 8589,
+        
+        
+      }
 def compare(reconstruted_path,real_path):
 
     return 
 
-def convert_to_mesh_once(stageii_input_file,matched_original_path):
+def convert_to_mesh_once(stageii_input_file,matched_original_path,isExperiment):
     
     #cfg = prepare_render_cfg(**cfg)
 
@@ -159,7 +198,7 @@ def convert_to_mesh_once(stageii_input_file,matched_original_path):
             cur_body_verts = rotate_points_xyz(cur_body_verts, np.array([0, 0, 0]).reshape(-1, 3))[0]
            
             #only select the 34 points as
-            indices=list(marker_dict.values())
+            indices=list(exp_marker_dict.values())
             filteredb_vertices= cur_body_verts[indices]
           
 
@@ -182,28 +221,36 @@ def convert_to_mesh_once(stageii_input_file,matched_original_path):
  
    
 
- 
-   
+    dict_used={}
+    if isExperiment:
+        dict_used=exp_marker_dict
+    else:
+        dict_used=marker_dict
+
+
    
 
             
     new_c3d = ezc3d.c3d()
+
+    print(markers.shape)
 
     # Add marker data
     new_c3d["data"]["points"] = markers
     #new_c3d['data']['meta_points']['residuals'] = residuals.transpose([2, 1, 0])
 
     # Update labels
-    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = list(marker_dict.keys())
+    print(list(dict_used.keys()))
+    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = list(dict_used.keys())
 
     # Adjust other parameters based on the new marker count
-    new_c3d["parameters"]["POINT"]["USED"]["value"] = [34]  # Update marker count
-    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * 34  # Placeholder descriptions
+    new_c3d["parameters"]["POINT"]["USED"]["value"] = [len(list(dict_used.keys()))]  # Update marker count
+    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * len(list(dict_used.keys()))  # Placeholder descriptions
 
     # Copy metadata from the original file if needed
     new_c3d["parameters"]["ANALOG"]["USED"]["value"] = [0]  # No analog channels
     new_c3d["parameters"]["ANALOG"]["RATE"]["value"] = [0]  # Analog rate
-    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * 34  # Empty descriptions
+    new_c3d["parameters"]["POINT"]["DESCRIPTIONS"]["value"] = [""] * len(list(dict_used.keys()))  # Empty descriptions
     new_c3d["parameters"]["POINT"]["UNITS"]["value"] = ["mm"]  # Units
     new_c3d["parameters"]["POINT"]["RATE"]["value"] = [100]
     # Save the updated C3D file
@@ -223,12 +270,12 @@ def convert_to_mesh_once(stageii_input_file,matched_original_path):
 
     # Display the average errors for x, y, z per marker
     for i, (x_err, y_err, z_err) in enumerate(average_errors_per_marker.T):
-        print(f"Marker {list(marker_dict.keys())[i]}: Avg Error -> X: {x_err:.4f}, Y: {y_err:.4f}, Z: {z_err:.4f}")
+        print(f"Marker {list(dict_used.keys())[i]}: Avg Error -> X: {x_err:.4f}, Y: {y_err:.4f}, Z: {z_err:.4f}")
 
     
     errors_dict = {
-    list(marker_dict.keys())[i]: tuple(average_errors_per_marker[:, i])
-    for i in range(len(list(marker_dict.keys())))
+    list(dict_used.keys())[i]: tuple(average_errors_per_marker[:, i])
+    for i in range(len(list(dict_used.keys())))
     }
 
     output_directory_path = os.path.dirname(outputpath)
@@ -266,4 +313,4 @@ for pk in pkl:
     trialname=pk.split("/")[-2]
     matched_original_path=[x for x in all_original_c3ds if trialname in x]
     print(matched_original_path)
-    convert_to_mesh_once(pk,matched_original_path[0])
+    convert_to_mesh_once(pk,matched_original_path[0],True)
