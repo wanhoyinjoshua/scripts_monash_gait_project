@@ -25,10 +25,10 @@ marker_dict={
         "LBHD": 2026,
         "RBHD": 3066,
         "C7": 3354,
-        "T10": 5623,
-        "CLAV": 5618,
-        "STRN": 5531,
-        "LSHO": 4481,
+        "T10": 5489,
+        "CLAV": 5528,
+        "STRN": 5532,
+        "LSHO": 3878,
         "LELB": 4302,
         "LIWR": 4726,
         "LOWR": 4722,
@@ -38,36 +38,36 @@ marker_dict={
         "RIWR": 7462,
         "ROWR": 7458,
         "RFIN": 7624,
-        "LFWT": 3486,
-        "RFWT": 6248,
+        "LFWT": 4082,
+        "RFWT": 6826,
         "LBWT": 5697,
         "RBWT": 8391,
         "LTHI": 3591,
         "LKNE": 3683,
         "LTIB": 3724,
         "LANK": 5882,
-        "LHEE": 8846,
-        "LTOE": 5895,
+        "LHEE": 8852,
+        "LTOE": 5893,
         "RTHI": 6352,
         "RKNE": 6444,
         "RTIB": 6485,
         "RANK": 8576,
-        "RHEE": 8634,
-        "RTOE": 8589,
+        "RHEE": 8640,
+        "RTOE": 8587,
         
         
       }
 
 exp_marker_dict={
-        "LFHD": 707,
+   "LFHD": 707,
         "RFHD": 2198,
         "LBHD": 2026,
         "RBHD": 3066,
         "C7": 3354,
-        "T10": 5623,
-        "CLAV": 5618,
-        "STRN": 5531,
-        "LSHO": 4481,
+        "T10": 5489,
+        "CLAV": 5528,
+        "STRN": 5532,
+        "LSHO": 3878,
         "LELB": 4302,
         "LIWR": 4726,
         "LOWR": 4722,
@@ -77,22 +77,23 @@ exp_marker_dict={
         "RIWR": 7462,
         "ROWR": 7458,
         "RFIN": 7624,
-        "LFWT": 3486,
-        "RFWT": 6248,
+        "LFWT": 4415,
+        "RFWT": 7151,
         "LBWT": 5697,
         "RBWT": 8391,
-       
-        "LKNE": 3683,
+        
+        "LKNE": 3639,
        
         "LANK": 5882,
-        "LHEE": 8846,
+        "LHEE": 5884,
         "LTOE": 5895,
        
-        "RKNE": 6444,
-       
+        "RKNE": 6400,
+        
         "RANK": 8576,
-        "RHEE": 8634,
-        "RTOE": 8589,
+        "RHEE": 8578,
+        "RTOE": 8589
+        
         
         
       }
@@ -107,8 +108,13 @@ def convert_to_mesh_once(stageii_input_file,matched_original_path,isExperiment):
     logger.info(f'Preparing mesh files for: {stageii_input_file}')
     
     outputpath = stageii_input_file.replace("running_just_mosh", "reconstructed")
+
     print(outputpath)
     outputpath = outputpath.replace(".pkl", ".c3d")
+    if os.path.isfile(outputpath):
+        return
+    else:
+        pass
     print(outputpath)
     output_file = Path(outputpath)
     output_file.parent.mkdir(parents=True, exist_ok=True)

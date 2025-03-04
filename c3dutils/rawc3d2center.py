@@ -406,8 +406,8 @@ def run_once(inputpath,isExperiment):
     trialname=inputpath[1].split("/")[-1].split(".")[0]
     subjectname=inputpath[1].split("/")[-2]
 
-    newpath=f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}/{trialname}.c3d"
-    os.makedirs(f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}", exist_ok=True)
+    newpath=f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}/{trialname}.c3d"
+    os.makedirs(f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}", exist_ok=True)
     new_c3d.write(newpath)
     df=pd.read_csv("subjects_char.csv")
     gender = df.loc[df["ID"] == subjectname, "Gender (M/F)"].values[0]
@@ -415,7 +415,7 @@ def run_once(inputpath,isExperiment):
         data = {"gender": "male"}
 
         # File path
-        file_path = f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}/settings.json"
+        file_path = f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}/settings.json"
 
         # Write to a JSON file
         with open(file_path, "w") as json_file:
@@ -425,7 +425,7 @@ def run_once(inputpath,isExperiment):
         data = {"gender": "female"}
 
         # File path
-        file_path = f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}_{trialname}/settings.json"
+        file_path = f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subjectname}/settings.json"
 
 
         # Write to a JSON file
