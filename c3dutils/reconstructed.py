@@ -284,8 +284,12 @@ def convert_to_mesh_once(stageii_input_file,matched_original_path,isExperiment):
     for i in range(len(list(dict_used.keys())))
     }
 
+    varbb=outputpath.split("/")[-1].split(".")[0]
+    print(varbb)
+
+
     output_directory_path = os.path.dirname(outputpath)
-    with open(f"{output_directory_path}/errors.pkl", "wb") as pkl_file:
+    with open(f"{output_directory_path}/errors_{varbb}.pkl", "wb") as pkl_file:
         pickle.dump(errors_dict, pkl_file)
 
     
@@ -315,8 +319,34 @@ for file in parent_folder.rglob("*.pkl"):  # Use rglob to search recursively for
 
 print(pkl)
 for pk in pkl:
+    pk2= pk.replace("_stageii", "").strip()
     print(pk)
-    trialname=pk.split("/")[-2]
-    matched_original_path=[x for x in all_original_c3ds if trialname in x]
+    trialname=pk2.split("/")[-1].split(".")[0]
+    subject=pk2.split("/")[-2]
+    comparisonpath=f"/mnt/d/ubuntubackup/test/support_files/evaluation_mocaps/original/SOMA_manual_labeled/{subject}"
+    print(comparisonpath)
+    all_sub_c3ds= [str(c3d_file) for c3d_file in Path(comparisonpath).rglob("*.c3d")]
+    import re
+
+    # Define the unpredictable search term
+    search_term = trialname
+
+    # Convert the search term into a flexible regex pattern
+    # Replace underscores with a pattern that matches zero or more underscores or spaces
+    # Handle optional leading zeros for numbers
+    pattern = re.sub(r"(\d+)", r"0*\1", search_term.replace("_", "[_ ]*"))
+
+    # Compile the pattern for easier use
+    compiled_pattern = re.compile(pattern, re.IGNORECASE)
+    # Create the regex pattern
+    print(trialname)
+    print(all_sub_c3ds)
+
+    matched_original_path=[x for x in all_sub_c3ds if compiled_pattern.search(x)] 
+    print("matched")
     print(matched_original_path)
-    convert_to_mesh_once(pk,matched_original_path[0],True)
+    if len(matched_original_path) == 0:
+        pass
+    else:
+        print("hi")
+        convert_to_mesh_once(pk,matched_original_path[0],True)
