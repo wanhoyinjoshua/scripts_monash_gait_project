@@ -40,7 +40,7 @@ def generatescale(trc):
     marker_placer = root.find(".//MarkerPlacer")
 
     # Update the marker_file, coordinate_file, output_motion_file, output_model_file, output_marker_file paths
-    marker_placer.find('marker_file').text = convert_wsl_to_windows(trc)  # Replace with custom path
+    marker_placer.find('marker_file').text = convert_wsl_to_windows(trc).split("/")[-1]  # Replace with custom path
     #marker_placer.find('coordinate_file').text = '/custom/path/to/coordinate_file.txt'  # Replace with custom path
     marker_placer.find('output_motion_file').text = convert_wsl_to_windows(trc).replace(".trc",".mot").split("/")[-1]  # Replace with custom path
     marker_placer.find('output_model_file').text = convert_wsl_to_windows(trc).replace(".trc",".osim").split("/")[-1]  # Replace with custom path
