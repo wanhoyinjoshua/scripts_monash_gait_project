@@ -39,6 +39,31 @@ pathdict=[(x, y) for x, y in zip(input_paths, outputpaths)]
 
 errorlog=[]
 
+def rename_markers(marker_labels):
+    # Create a dictionary with the original names as keys and the new names as values
+    rename_dict = {
+        'RWRB': 'ROWR',
+        'RWRA': 'RIWR',
+        'LWRB': 'LOWR',
+        'LWRA': 'LIWR',
+        'RASI': 'RFWT',
+        'RPSI': 'RBWT',
+        'LASI': 'LFWT',
+        'LPSI': 'LBWT'
+    }
+    
+    # Initialize an empty list to store the updated marker names
+    new_marker_list = []
+    
+    # Loop through the input marker labels and apply the name changes
+    for label in marker_labels:
+        if label in rename_dict:
+            new_marker_list.append(rename_dict[label])  # Append the new name
+        else:
+            new_marker_list.append(label)  # Keep the original name if no change
+    
+    return new_marker_list
+
 def replace_nan_with_closest(points):
     # Iterate over each frame
     for frame in range(points.shape[2]):  # Loop over frames
@@ -380,7 +405,7 @@ def run_once(inputpath,isExperiment):
     # Update the C3D data with the transformed points
 
     newdata=join_c3ds(trial_points,points,trial_analogs,analog)
-    print(newdata)
+  
     # Update the C3D file structure
     new_c3d = ezc3d.c3d()
 
@@ -388,7 +413,9 @@ def run_once(inputpath,isExperiment):
     new_c3d["data"]["points"] = newdata[0]
 
     # Update labels
-    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = subset_labels
+    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = rename_markers(subset_labels)
+    print("shit")
+    print(rename_markers(subset_labels))
     #new_c3d["data"]["analogs"]=newdata[1]
     # Adjust other parameters based on the new marker count
     new_c3d["parameters"]["POINT"]["USED"]["value"] = [len(points)]  # Update marker count
@@ -534,7 +561,7 @@ def run_cal(inputpath):
     new_c3d["data"]["points"] = points
 
     # Update labels
-    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = subset_labels
+    new_c3d["parameters"]["POINT"]["LABELS"]["value"] = rename_markers(subset_labels)
 
     # Adjust other parameters based on the new marker count
     new_c3d["parameters"]["POINT"]["USED"]["value"] = [34]  # Update marker count
